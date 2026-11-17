@@ -1,4 +1,4 @@
-name: Cleanup Old Releases and Containers
+name: Cleanup Old Releases, Containers, and Actions
 
 on:
   workflow_dispatch: # Allows manual trigger from GitHub mobile/web
@@ -11,6 +11,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      actions: write # Required to delete old workflow runs
 
     steps:
       - name: Delete Older GitHub Releases
@@ -24,8 +25,16 @@ jobs:
       - name: Delete Older Container Versions from GHCR
         uses: snok/container-retention-policy@v2
         with:
-          image-name: mangayomi
-          image-owner: eggmv
-          access-token: ${{ secrets.GITHUB_TOKEN }}
-          cut-off: 1 # Keeps only the 1 most recent container image version, deletes older ones
-          keep-tags: latest
+          account-type: personal
+          image-names: mangayomi
+          cut-off: 7 days # Keeps containers newer than 7 days, purging older stale builds
+          keep-at-least: 1 # Ensures at least the latest container image is always preserved
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete Older Workflow Runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 0 # Deletes all completed runs older than the keep_minimum threshold
+          keep_minimum_runs: 2 # Keeps the 2 most recent runs per workflow (active + last build)
