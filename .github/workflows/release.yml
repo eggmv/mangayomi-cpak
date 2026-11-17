@@ -38,33 +38,33 @@ jobs:
           push: true
           tags: ghcr.io/eggmv/mangayomi:${{ steps.upstream.outputs.tag }}
 
-      - name: Get Image Digest and Update cpak.json
+      - name: Generate Pinned cpak.json Manifest
         run: |
-          # Pull the image back down locally to inspect its exact RepoDigest
+          # Pull image to ensure local inspection works
           docker pull ghcr.io/eggmv/mangayomi:${{ steps.upstream.outputs.tag }}
           
-          # Extract the sha256 digest string
+          # Extract exact SHA256 digest
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ghcr.io/eggmv/mangayomi:${{ steps.upstream.outputs.tag }} | awk -F'@' '{print $2}')
-          echo "Captured Image Digest: $DIGEST"
+          echo "Generated Digest: $DIGEST"
 
-          # Automatically update the image field inside cpak.json with the pinned digest
-          sed -i 's|"image": ".*"|"image": "ghcr.io/eggmv/mangayomi@'${DIGEST}'"|g' cpak.json
-          
-          # Optional: Update the version field in cpak.json as well to match upstream
-          sed -i 's|"version": ".*"|"version": "${{ steps.upstream.outputs.tag }}"|g' cpak.json
+          # Cleanly update version and digest-pinned image reference in cpak.json using jq
+          jq --arg img "ghcr.io/eggmv/mangayomi@${DIGEST}" \
+             --arg ver "${{ steps.upstream.outputs.tag }}" \
+             '.image = $img | .version = $ver' cpak.json > cpaked-manifest.json
 
-          # Create a clean archive containing your updated, digest-pinned cpak manifest
-          tar -czf mangayomi-cpak-${{ steps.upstream.outputs.tag }}.tar.gz cpak.json
+          # Rename it for the release artifact
+          mv cpaked-manifest.json cpak.json
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.upstream.outputs.tag }}
           name: Mangayomi ${{ steps.upstream.outputs.tag }}
-          files: mangayomi-cpak-${{ steps.upstream.outputs.tag }}.tar.gz
+          files: cpak.json
           body: |
-            Automated Singularity OS package for Mangayomi version ${{ steps.upstream.outputs.tag }}.
-            Digest-pinned container reference generated automatically for cpak Manifest v3 compliance.
+            Automated Singularity OS release for Mangayomi version ${{ steps.upstream.outputs.tag }}.
+            - **Container Image:** `ghcr.io/eggmv/mangayomi`
+            - **Digest-pinned Manifest:** `cpak.json` (ready for direct download and deployment)
           draft: false
           prerelease: false
         env:
