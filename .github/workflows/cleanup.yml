@@ -1,4 +1,4 @@
-name: Cleanup Old Releases
+name: Cleanup Old Releases and Containers
 
 on:
   workflow_dispatch: # Allows manual trigger from GitHub mobile/web
@@ -10,12 +10,22 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
 
     steps:
-      - name: Delete Older Releases and Tags
+      - name: Delete Older GitHub Releases
         uses: dev-drprasad/delete-older-releases@v0.3.3
         with:
-          keep_latest: 1 # Keeps only the absolute newest release, deletes all older ones
-          delete_tags: true # Automatically deletes the Git tags associated with the old releases
+          keep_latest: 1 # Keeps only the newest release, deletes all older ones
+          delete_tags: true # Automatically deletes the Git tags associated with old releases
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete Older Container Versions from GHCR
+        uses: snok/container-retention-policy@v3
+        with:
+          image-name: mangayomi
+          image-owner: eggmv
+          access-token: ${{ secrets.GITHUB_TOKEN }}
+          cut-off: 1 # Keeps only the 1 most recent container image version, deletes older ones
+          keep-tags: latest
