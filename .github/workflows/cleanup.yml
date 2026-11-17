@@ -22,7 +22,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Delete Older Container Versions from GHCR
-        uses: snok/container-retention-policy@v3
+        uses: snok/container-retention-policy@v2
         with:
           image-name: mangayomi
           image-owner: eggmv
