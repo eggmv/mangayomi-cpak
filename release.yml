@@ -1,0 +1,35 @@
+name: Build and Publish cpak
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # Checks daily for new upstream releases
+  workflow_dispatch:     # Allows manual trigger from the Actions tab
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push OCI Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/eggmv/mangayomi:latest
+
+      - name: Confirm Build Success
+        run: |
+          echo "Mangayomi container successfully built and published to ghcr.io/eggmv/mangayomi:latest"
