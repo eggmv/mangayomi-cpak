@@ -1,0 +1,11 @@
+{
+  "manifest_version": "3.0",
+  "origin": "github.com/eggmv/mangayomi-cpak",
+  "image": "ghcr.io/eggmv/mangayomi:latest",
+  "permissions": {
+    "displayX11": true,
+    "network": true,
+    "audio": true
+  },
+  "command": "mangayomi"
+}
