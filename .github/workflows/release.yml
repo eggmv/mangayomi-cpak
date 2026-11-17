@@ -1,12 +1,12 @@
-name: Build and Publish cpak
+name: Release Mangayomi cpak
 
 on:
   schedule:
-    - cron: '0 2 * * *' # Checks daily for new upstream releases
-  workflow_dispatch:     # Allows manual trigger from the Actions tab
+    - cron: '0 2 * * *' # Check daily for new upstream releases
+  workflow_dispatch:     # Allow manual trigger from GitHub mobile/web
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -23,14 +23,49 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Fetch Latest Upstream Version Tag
+        id: upstream
+        run: |
+          LATEST_TAG=$(curl -s https://api.github.com/repos/kodjodevf/mangayomi/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "Latest upstream version: $LATEST_TAG"
+
       - name: Build and Push OCI Image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Containerfile
           push: true
-          tags: ghcr.io/eggmv/mangayomi:latest
+          tags: ghcr.io/eggmv/mangayomi:${{ steps.upstream.outputs.tag }}
 
-      - name: Confirm Build Success
+      - name: Get Image Digest and Update cpak.json
         run: |
-          echo "Mangayomi container successfully built and published to ghcr.io/eggmv/mangayomi:latest"
+          # Pull the image back down locally to inspect its exact RepoDigest
+          docker pull ghcr.io/eggmv/mangayomi:${{ steps.upstream.outputs.tag }}
+          
+          # Extract the sha256 digest string
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ghcr.io/eggmv/mangayomi:${{ steps.upstream.outputs.tag }} | awk -F'@' '{print $2}')
+          echo "Captured Image Digest: $DIGEST"
+
+          # Automatically update the image field inside cpak.json with the pinned digest
+          sed -i 's|"image": ".*"|"image": "ghcr.io/eggmv/mangayomi@'${DIGEST}'"|g' cpak.json
+          
+          # Optional: Update the version field in cpak.json as well to match upstream
+          sed -i 's|"version": ".*"|"version": "${{ steps.upstream.outputs.tag }}"|g' cpak.json
+
+          # Create a clean archive containing your updated, digest-pinned cpak manifest
+          tar -czf mangayomi-cpak-${{ steps.upstream.outputs.tag }}.tar.gz cpak.json
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.upstream.outputs.tag }}
+          name: Mangayomi ${{ steps.upstream.outputs.tag }}
+          files: mangayomi-cpak-${{ steps.upstream.outputs.tag }}.tar.gz
+          body: |
+            Automated Singularity OS package for Mangayomi version ${{ steps.upstream.outputs.tag }}.
+            Digest-pinned container reference generated automatically for cpak Manifest v3 compliance.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
