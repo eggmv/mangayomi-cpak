@@ -1,11 +1,73 @@
 {
+  "$schema": "https://raw.githubusercontent.com/Containerpak/cpak/v2/schema/manifest-v3.json",
   "manifest_version": "3.0",
-  "origin": "github.com/eggmv/mangayomi-cpak",
+  "name": "Mangayomi",
+  "description": "Free and open source manga reader and video streaming application.",
+  "version": "latest",
   "image": "ghcr.io/eggmv/mangayomi:latest",
-  "permissions": {
+  "binaries": [
+    "/opt/mangayomi/mangayomi"
+  ],
+  "desktop_entries": [],
+  "dependencies": [],
+  "addons": [],
+  "idle_time": 0,
+  "override": {
     "displayX11": true,
+    "clipboard": {
+      "hostToApp": true,
+      "appToHost": true
+    },
+    "socketWayland": true,
+    "socketPulseAudio": true,
+    "socketSshAgent": false,
+    "socketCups": false,
+    "socketGpgAgent": false,
+    "bluetooth": false,
+    "deviceDri": true,
+    "deviceKvm": false,
+    "deviceShm": true,
+    "deviceAlsa": false,
+    "deviceVideo": true,
+    "deviceFuse": false,
+    "deviceTun": false,
+    "deviceUsb": false,
+    "deviceSerial": false,
+    "deviceInput": false,
+    "deviceTTY": false,
+    "deviceAll": false,
+    "notification": true,
+    "openURI": true,
+    "hostApplications": false,
+    "hostActions": [],
+    "filePicker": {
+      "openFile": true,
+      "openFolder": true,
+      "saveFile": true,
+      "persistent": true,
+      "containingFolder": true
+    },
+    "filesystem": [
+      {
+        "path": "home/.local/share/com.kodjodev.mangayomi",
+        "access": "read-write"
+      },
+      {
+        "path": "home/Downloads",
+        "access": "read-write"
+      }
+    ],
+    "env": [
+      "PATH=/opt/mangayomi:/usr/bin:/bin",
+      "LD_LIBRARY_PATH=/usr/lib:/usr/lib/x86_64-linux-gnu",
+      "GSETTINGS_BACKEND=keyfile"
+    ],
     "network": true,
-    "audio": true
-  },
-  "command": "mangayomi"
+    "process": false,
+    "userNamespaces": true,
+    "memoryMaxMB": 0,
+    "cpuQuota": 0,
+    "pidsMax": 0,
+    "asRoot": false
+  }
 }
