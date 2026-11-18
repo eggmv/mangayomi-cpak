@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Mangayomi
+Comment=Free and open source manga reader and video streaming application
+Exec=/opt/mangayomi/mangayomi
+Icon=mangayomi
+Categories=Utility;Viewer;
+Terminal=false
