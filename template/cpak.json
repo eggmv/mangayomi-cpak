@@ -49,8 +49,9 @@
     ],
     "env": [
       "PATH=/opt/mangayomi:/usr/bin:/bin",
-      "LD_LIBRARY_PATH=/usr/lib:/usr/lib/x86_64-linux-gnu",
-      "GSETTINGS_BACKEND=keyfile"
+      "LD_LIBRARY_PATH=/opt/mangayomi/lib:/opt/mangayomi/lib/x86_64-linux-gnu:/usr/lib:/usr/lib/x86_64-linux-gnu",
+      "GSETTINGS_BACKEND=keyfile",
+      "GTK_A11Y=none"
     ],
     "network": true,
     "userNamespaces": true

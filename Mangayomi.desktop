@@ -6,3 +6,4 @@ Exec=/opt/mangayomi/mangayomi
 Icon=mangayomi
 Categories=Utility;Viewer;
 Terminal=false
+StartupNotify=true

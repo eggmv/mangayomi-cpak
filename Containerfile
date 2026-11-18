@@ -1,27 +1,40 @@
 FROM debian:13-slim
 
-# Install system dependencies required for Flutter Linux desktop apps
+# Install system dependencies required by the Flutter Linux desktop bundle
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     unzip \
+    jq \
     libglib2.0-0 \
     libgtk-3-0 \
     libwebkit2gtk-4.1-0 \
     libmpv2 \
+    libegl1 \
+    libgl1 \
+    libxkbcommon0 \
+    libxkbcommon-x11-0 \
+    libxcb1 \
+    libxcb-cursor0 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/mangayomi
 
-# Fetch latest release zip URL from GitHub API and extract it
-RUN DOWNLOAD_URL=$(curl -s https://api.github.com/repos/kodjodevf/mangayomi/releases/latest | grep "browser_download_url.*linux.zip" | cut -d '"' -f 4) \
-    && curl -L -o mangayomi.zip "$DOWNLOAD_URL" \
-    && unzip mangayomi.zip \
+# Download the Linux ZIP asset explicitly and fail immediately if it is unavailable.
+RUN DOWNLOAD_URL=$(curl -fsSL https://api.github.com/repos/kodjodevf/mangayomi/releases/latest \
+        | jq -r '.assets[].browser_download_url | select(test("-linux\\.zip$"))' | head -n 1) \
+    && test -n "$DOWNLOAD_URL" \
+    && curl -fL -o mangayomi.zip "$DOWNLOAD_URL" \
+    && unzip -q mangayomi.zip \
     && rm mangayomi.zip \
-    && chmod +x mangayomi
+    && APP_BINARY=$(find /opt/mangayomi -type f -name mangayomi -perm /111 | head -n 1) \
+    && test -n "$APP_BINARY" \
+    && chmod +x "$APP_BINARY" \
+    && ln -sfn "$APP_BINARY" /opt/mangayomi/mangayomi
 
-# Copy the capital-M desktop entry into the container application layer
+# Copy the desktop entry used by Containerpak and desktop launchers.
 COPY Mangayomi.desktop /usr/share/applications/Mangayomi.desktop
 
-# Set the executable entrypoint
+ENV LD_LIBRARY_PATH=/opt/mangayomi/lib:/opt/mangayomi/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib
+
 ENTRYPOINT ["/opt/mangayomi/mangayomi"]

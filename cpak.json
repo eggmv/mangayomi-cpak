@@ -5,7 +5,7 @@
   "description": "Free and open source manga reader and video streaming application.",
   "version": "v0.9.96",
   "image": "ghcr.io/eggmv/mangayomi@sha256:2161b79ce41904166333cfbffd8f58ffce7a1a7ace35f238f9087d56af075035",
-    "binaries": [
+  "binaries": [
     "/opt/mangayomi/mangayomi"
   ],
   "desktop_entries": [
@@ -53,19 +53,20 @@
       "containingFolder": true
     },
     "filesystem": [
-    {
-    "path": "home/.local/share/com.kodjodev.mangayomi",
-    "access": "read-write"
-    },
-    {
-    "path": "home/Downloads",
-    "access": "read-write"
-    }
+      {
+        "path": "home/.local/share/com.kodjodev.mangayomi",
+        "access": "read-write"
+      },
+      {
+        "path": "home/Downloads",
+        "access": "read-write"
+      }
     ],
     "env": [
       "PATH=/opt/mangayomi:/usr/bin:/bin",
-      "LD_LIBRARY_PATH=/usr/lib:/usr/lib/x86_64-linux-gnu",
-      "GSETTINGS_BACKEND=keyfile"
+      "LD_LIBRARY_PATH=/opt/mangayomi/lib:/opt/mangayomi/lib/x86_64-linux-gnu:/usr/lib:/usr/lib/x86_64-linux-gnu",
+      "GSETTINGS_BACKEND=keyfile",
+      "GTK_A11Y=none"
     ],
     "network": true,
     "process": false,
