@@ -8,7 +8,12 @@
   "binaries": [
     "/opt/mangayomi/mangayomi"
   ],
-  "desktop_entries": [],
+  "desktop_entries": [
+    "/usr/share/applications/mangayomi.desktop"
+  ],
+  "form_factors": [
+    "desktop"
+  ],
   "dependencies": [],
   "addons": [],
   "idle_time": 0,
