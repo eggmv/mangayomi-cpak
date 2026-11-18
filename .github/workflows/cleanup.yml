@@ -1,27 +1,25 @@
-name: Reset Repository History and Assets
+name: Cleanup Releases, Containers, and Actions History
 
 on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Type "RESET" to confirm deletion of all history, releases, and packages'
+        description: 'Type "CLEAN" to confirm deletion of releases, packages, and runs'
         required: true
         type: string
 
 jobs:
-  reset-repo:
+  cleanup:
     runs-on: ubuntu-latest
     steps:
       - name: Verify Confirmation
-        if: ${{ inputs.confirm != 'RESET' }}
+        if: ${{ inputs.confirm != 'CLEAN' }}
         run: |
-          echo "Error: You must type 'RESET' in the confirmation box to run this workflow."
+          echo "Error: You must type 'CLEAN' in the confirmation box to run this workflow."
           exit 1
 
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Fetch all history so we can rewrite it
 
       - name: Authenticate GitHub CLI
         run: |
@@ -50,34 +48,13 @@ jobs:
             done
           done
 
-      - name: Delete Container Packages (via Snok Retention Policy)
+      - name: Delete Container Packages (Snok Retention Policy)
         uses: snok/container-retention-policy@v2
         with:
           account-type: personal
           image-names: mangayomi
-          cut-off: 0 days UTC   # Set to 0 to delete everything immediately, with timezone fixed
-          keep-at-least: 0
+          cut-off: 0 days UTC   # 0 days UTC deletes all versions immediately
+          keep-at-least: 0      # Keep 0 versions (purge all)
           token: ${{ secrets.GH_PAT }}
           token-type: pat
           dry-run: false
-
-      - name: Wipe Commit History
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Switch to an orphan branch (no commit history)
-          git checkout --orphan temp-branch
-
-          # Add all current files
-          git add -A
-
-          # Create the fresh initial commit
-          git commit -m "Fresh repository start"
-
-          # Force push to main (replace main with your default branch if different)
-          git push origin temp-branch:main --force
-
-          # Clean up local branch reference
-          git branch -D main || true
-          git branch -m main
