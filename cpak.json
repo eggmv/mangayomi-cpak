@@ -19,11 +19,8 @@
   "idle_time": 0,
   "override": {
     "displayX11": true,
-    "clipboard": {
-      "hostToApp": true,
-      "appToHost": true
-    },
     "socketWayland": true,
+    "socketSessionBus": true,
     "socketPulseAudio": true,
     "socketSshAgent": false,
     "socketCups": false,
@@ -41,6 +38,10 @@
     "deviceInput": false,
     "deviceTTY": false,
     "deviceAll": false,
+    "clipboard": {
+      "hostToApp": true,
+      "appToHost": true
+    },
     "notification": true,
     "openURI": true,
     "hostApplications": false,
