@@ -20,7 +20,6 @@
   "override": {
     "displayX11": true,
     "socketWayland": true,
-    "socketSessionBus": true,
     "socketPulseAudio": true,
     "socketSshAgent": false,
     "socketCups": false,
