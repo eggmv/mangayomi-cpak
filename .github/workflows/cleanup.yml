@@ -39,7 +39,6 @@ jobs:
       - name: Delete Workflow Runs (Actions History)
         run: |
           echo "Deleting workflow runs..."
-          # Loop to fetch and delete runs in batches
           while true; do
             RUN_IDS=$(gh run list --limit 100 --json databaseId -q '.[].databaseId')
             if [ -z "$RUN_IDS" ]; then
@@ -51,21 +50,16 @@ jobs:
             done
           done
 
-      - name: Delete Container Packages
-        run: |
-          echo "Checking for container packages..."
-          # Note: Adjust the package type/name if you use specific packages (CONTAINER, deb, maven, npm, etc.)
-          PACKAGES=$(gh api user/packages --paginate --jq '.[] | select(.package_type == "container") | .name' 2>/dev/null || true)
-          for pkg in $PACKAGES; do
-            echo "Deleting package: $pkg"
-            gh api -X DELETE "user/packages/container/$pkg" || true
-          done
-          
-          # If packages belong to an organization instead of a user, use:
-          # ORG_PACKAGES=$(gh api orgs/YOUR_ORG_NAME/packages --paginate --jq '.[] | select(.package_type == "container") | .name' 2>/dev/null || true)
-          # for pkg in $ORG_PACKAGES; do
-          #   gh api -X DELETE "orgs/YOUR_ORG_NAME/packages/container/$pkg" || true
-          # done
+      - name: Delete Container Packages (via Snok Retention Policy)
+        uses: snok/container-retention-policy@v2
+        with:
+          account-type: personal
+          image-names: mangayomi
+          cut-off: 0 days UTC   # Set to 0 to delete everything immediately, with timezone fixed
+          keep-at-least: 0
+          token: ${{ secrets.GH_PAT }}
+          token-type: pat
+          dry-run: false
 
       - name: Wipe Commit History
         run: |
