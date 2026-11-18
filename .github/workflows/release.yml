@@ -47,10 +47,10 @@ jobs:
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ghcr.io/eggmv/mangayomi:${{ steps.upstream.outputs.tag }} | awk -F'@' '{print $2}')
           echo "Generated Digest: $DIGEST"
 
-          # Cleanly update version and digest-pinned image reference in cpak.json using jq
+          # Cleanly update version, digest-pinned image reference, desktop entries (with correct case), and form factors using jq
           jq --arg img "ghcr.io/eggmv/mangayomi@${DIGEST}" \
              --arg ver "${{ steps.upstream.outputs.tag }}" \
-             '.image = $img | .version = $ver' cpak.json > cpaked-manifest.json
+             '.image = $img | .version = $ver | .desktop_entries = ["/usr/share/applications/Mangayomi.desktop"] | .form_factors = ["desktop"]' cpak.json > cpaked-manifest.json
 
           # Rename it for the release artifact
           mv cpaked-manifest.json cpak.json
