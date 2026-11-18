@@ -42,17 +42,16 @@ jobs:
         run: |
           # Pull image to ensure local inspection works
           docker pull ghcr.io/eggmv/mangayomi:${{ steps.upstream.outputs.tag }}
-          
+
           # Extract exact SHA256 digest
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ghcr.io/eggmv/mangayomi:${{ steps.upstream.outputs.tag }} | awk -F'@' '{print $2}')
           echo "Generated Digest: $DIGEST"
 
-          # Cleanly update version, digest-pinned image reference, desktop entries (with correct case), and form factors using jq
+          # Update version, digest-pinned image reference, desktop entry, and form factor
           jq --arg img "ghcr.io/eggmv/mangayomi@${DIGEST}" \
              --arg ver "${{ steps.upstream.outputs.tag }}" \
              '.image = $img | .version = $ver | .desktop_entries = ["/usr/share/applications/Mangayomi.desktop"] | .form_factors = ["desktop"]' cpak.json > cpaked-manifest.json
 
-          # Rename it for the release artifact
           mv cpaked-manifest.json cpak.json
 
       - name: Update Repository Manifest
@@ -65,18 +64,3 @@ jobs:
             git commit -m "Update cpak.json"
             git push origin "HEAD:$GITHUB_REF_NAME"
           fi
-
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.upstream.outputs.tag }}
-          name: Mangayomi ${{ steps.upstream.outputs.tag }}
-          files: cpak.json
-          body: |
-            Automated Singularity OS release for Mangayomi version ${{ steps.upstream.outputs.tag }}.
-            - **Container Image:** `ghcr.io/eggmv/mangayomi`
-            - **Digest-pinned Manifest:** `cpak.json` (ready for direct download and deployment)
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
