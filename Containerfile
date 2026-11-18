@@ -20,5 +20,8 @@ RUN DOWNLOAD_URL=$(curl -s https://api.github.com/repos/kodjodevf/mangayomi/rele
     && rm mangayomi.zip \
     && chmod +x mangayomi
 
+# Copy the capital-M desktop entry into the container application layer
+COPY Mangayomi.desktop /usr/share/applications/Mangayomi.desktop
+
 # Set the executable entrypoint
 ENTRYPOINT ["/opt/mangayomi/mangayomi"]
