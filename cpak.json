@@ -4,7 +4,7 @@
   "name": "Mangayomi",
   "description": "Free and open source manga reader and video streaming application.",
   "version": "v0.9.96",
-  "image": "ghcr.io/eggmv/mangayomi@sha256:21dde5cad295b0928a89bee6716335062d71b7150cf66c54fe88f4c553b245ea",
+  "image": "ghcr.io/eggmv/mangayomi@sha256:fcd221c9b601107eee91692dd4a3fc122dec99de35c4ebd5afa632149d88c08d",
   "binaries": [
     "/opt/mangayomi/mangayomi"
   ],
