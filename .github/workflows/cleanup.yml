@@ -1,60 +1,99 @@
-name: Cleanup Releases, Containers, and Actions History
+name: Clean Releases, Tags, Containers, and Actions History
 
 on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Type "CLEAN" to confirm deletion of releases, packages, and runs'
+        description: 'Type CLEAN to permanently delete all releases, tags, container versions, and prior workflow runs'
         required: true
         type: string
+
+permissions:
+  actions: write
+  contents: write
+  packages: write
 
 jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Verify Confirmation
-        if: ${{ inputs.confirm != 'CLEAN' }}
+      - name: Verify confirmation and token
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          echo "Error: You must type 'CLEAN' in the confirmation box to run this workflow."
-          exit 1
+          if [ "${{ inputs.confirm }}" != "CLEAN" ]; then
+            echo "Confirmation did not match CLEAN; nothing was deleted."
+            exit 1
+          fi
+          if [ -z "$GH_TOKEN" ]; then
+            echo "GH_PAT is not configured. Set it to a classic PAT with repo, delete:packages, read:packages, and write:packages scopes."
+            exit 1
+          fi
 
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Authenticate GitHub CLI
+      - name: Delete all GitHub Releases and their tags
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          echo "${{ secrets.GH_PAT }}" | gh auth login --with-token
+          set -euo pipefail
+          gh auth status
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName --jq '.[].tagName' > /tmp/release-tags.txt
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            echo "Deleting release and associated tag: $tag"
+            gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes
+          done < /tmp/release-tags.txt
 
-      - name: Delete All Releases
+      - name: Delete remaining Git tags
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          echo "Fetching and deleting all releases..."
-          TAGS=$(gh release list --limit 500 --json tagName -q '.[].tagName')
-          for tag in $TAGS; do
-            echo "Deleting release and tag: $tag"
-            gh release delete "$tag" --cleanup-tag --yes || true
-          done
+          set -euo pipefail
+          gh api --paginate "/repos/$GITHUB_REPOSITORY/git/matching-refs/tags/" --jq '.[].ref' > /tmp/git-tags.txt
+          while IFS= read -r ref; do
+            [ -n "$ref" ] || continue
+            echo "Deleting tag ref: $ref"
+            gh api --method DELETE "/repos/$GITHUB_REPOSITORY/git/refs/$ref"
+          done < /tmp/git-tags.txt
 
-      - name: Delete Workflow Runs (Actions History)
+      - name: Delete all Mangayomi container versions
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          echo "Deleting workflow runs..."
-          while true; do
-            RUN_IDS=$(gh run list --limit 100 --json databaseId -q '.[].databaseId')
-            if [ -z "$RUN_IDS" ]; then
-              break
-            fi
-            for id in $RUN_IDS; do
-              echo "Deleting workflow run ID: $id"
-              gh run delete "$id" || true
-            done
-          done
+          set -euo pipefail
+          versions_url="/users/$GITHUB_REPOSITORY_OWNER/packages/container/mangayomi/versions?per_page=100"
+          gh api --paginate "$versions_url" --jq '.[].id' > /tmp/container-version-ids.txt
+          while IFS= read -r version_id; do
+            [ -n "$version_id" ] || continue
+            echo "Deleting container version ID: $version_id"
+            gh api --method DELETE "/users/$GITHUB_REPOSITORY_OWNER/packages/container/mangayomi/versions/$version_id"
+          done < /tmp/container-version-ids.txt
 
-      - name: Delete Container Packages (Snok Retention Policy)
-        uses: snok/container-retention-policy@v2
-        with:
-          account-type: personal
-          image-names: mangayomi
-          cut-off: 0 days UTC   # 0 days UTC deletes all versions immediately
-          keep-at-least: 0      # Keep 0 versions (purge all)
-          token: ${{ secrets.GH_PAT }}
-          token-type: pat
-          dry-run: false
+      - name: Cancel other active workflow runs
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          set -euo pipefail
+          gh api --paginate "/repos/$GITHUB_REPOSITORY/actions/runs?per_page=100" \
+            --jq '.workflow_runs[] | select((.id | tostring) != env.GITHUB_RUN_ID) | select(.status == "queued" or .status == "in_progress") | .id' \
+            > /tmp/active-run-ids.txt
+          while IFS= read -r run_id; do
+            [ -n "$run_id" ] || continue
+            echo "Canceling workflow run ID: $run_id"
+            gh api --method POST "/repos/$GITHUB_REPOSITORY/actions/runs/$run_id/cancel"
+          done < /tmp/active-run-ids.txt
+          sleep 10
+
+      - name: Delete completed workflow runs
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          set -euo pipefail
+          gh api --paginate "/repos/$GITHUB_REPOSITORY/actions/runs?per_page=100" \
+            --jq '.workflow_runs[] | select((.id | tostring) != env.GITHUB_RUN_ID) | select(.status == "completed") | .id' \
+            > /tmp/completed-run-ids.txt
+          while IFS= read -r run_id; do
+            [ -n "$run_id" ] || continue
+            echo "Deleting workflow run ID: $run_id"
+            gh api --method DELETE "/repos/$GITHUB_REPOSITORY/actions/runs/$run_id"
+          done < /tmp/completed-run-ids.txt
+          echo "Cleanup finished. The currently running cleanup workflow is excluded and will remain in history."
