@@ -55,6 +55,17 @@ jobs:
           # Rename it for the release artifact
           mv cpaked-manifest.json cpak.json
 
+      - name: Update Repository Manifest
+        if: github.ref_name == github.event.repository.default_branch
+        run: |
+          if ! git diff --quiet -- cpak.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add cpak.json
+            git commit -m "Update cpak.json"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
