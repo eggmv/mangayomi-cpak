@@ -9,7 +9,7 @@
     "/opt/mangayomi/mangayomi"
   ],
   "desktop_entries": [
-    "/usr/share/applications/mangayomi.desktop"
+    "/usr/share/applications/Mangayomi.desktop"
   ],
   "form_factors": [
     "desktop"
