@@ -1,6 +1,6 @@
 # mangayomi-cpak
 
-this does bot work yet
+this does not work yet, any help is welcomed 
 
 Containerpak packaging for Mangayomi.
 
